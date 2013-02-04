@@ -1,0 +1,2 @@
+include netscramble/glade/*.glade
+include README.rst
