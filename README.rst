@@ -1,6 +1,6 @@
 Netscramble
 ===========
-Netscramble is a logic game similar to KNetWalk, implemented using Python, GTK, and Cairo. Left click to rotate tiles, and right click to lock them. Connect all the pipes from the rectangles to the the circle to win.
+Netscramble is a logic game similar to KNetWalk, implemented using Python, GTK, and Cairo. Currently only very basic functionality is implemented, but the game is playable. Left click to rotate tiles, and right click to lock them. Connect all the pipes from the rectangles to the the circle to win.
 
 .. image:: screenshot.png
 

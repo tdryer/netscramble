@@ -1,2 +1,4 @@
 include netscramble/glade/*.glade
 include README.rst
+include screenshot.png
+include TODO
