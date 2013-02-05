@@ -11,6 +11,23 @@ from netscramble import res
 from netscramble.game import TileGrid
 from netscramble.score_dialog import ScoreDialog
 
+class Timer(object):
+    """Context manager for simple benchmarking."""
+
+    def __init__(self, print_result):
+        self.print_result = print_result
+        self.start_time = None
+
+    def __enter__(self):
+        self.start_time = time.time()
+
+    def __exit__(self, _type, _value, _traceback):
+        end_time = time.time()
+        millis_elapsed = 1000 * (end_time - self.start_time)
+        if self.print_result:
+            print "{} ms elapsed".format(round(millis_elapsed, 2))
+        return millis_elapsed
+
 def hex_to_rgb(value):
     # from: http://stackoverflow.com/a/214657
     lv = len(value)
@@ -216,8 +233,10 @@ class MainWindow():
         width = widget.get_allocated_width()
         height = widget.get_allocated_height()
 
-        self.render_matrix = render_tile_grid(cr, width, height,
-                                              self.tile_grid, self.tile_lock)
+        with Timer(False): # TODO
+            self.render_matrix = render_tile_grid(
+                cr, width, height, self.tile_grid, self.tile_lock
+            )
         # TODO: need way to copy a matrix to avoid this
         self.render_matrix_inverted = cr.get_matrix()
         self.render_matrix_inverted.invert()
