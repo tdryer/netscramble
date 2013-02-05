@@ -6,7 +6,12 @@ Netscramble is a logic game similar to KNetWalk, implemented using Python, GTK, 
 
 Install
 -------
-The dependencies are Python 2.7, Pycairo, and GObject introspection bindings for Gtk, GObject, and GLib. I have only tested on Ubuntu 12.10, which should have all of these.
+The dependencies are Python 2.7, Pycairo, and GObject introspection bindings for Gtk, GObject, and GLib. I have only tested on Ubuntu 12.04 and 12.10, which should have all of these.
+
+Run without installing:
+::
+
+ python -m netscramble.gui
 
 Build a package and install:
 ::
