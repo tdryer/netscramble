@@ -1,5 +1,4 @@
 from gi.repository import Gtk, GObject #pylint: disable=E0611
-import os
 import time
 import json
 
@@ -82,6 +81,7 @@ class SimpleTreeView():
 
         # return the iter
         return self._list_store.append(res)
+
 
 class ScoreDialog():
     """The high scores dialog."""
@@ -171,4 +171,3 @@ class ScoreDialog():
     def on_new_game_action_activate(self, action, data=None):
         self._new_game_f()
         self.window.hide()
-

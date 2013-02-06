@@ -19,22 +19,24 @@ def rotate_dir(d, clockwise=True):
 def opposite_dir(d):
     return (d[0] * -1, d[1] * -1)
 
-class Tile():
+
+class Tile(object):
 
     def __init__(self):
         self.pipes = []
         self.is_origin = False
         self.is_powered = False
 
-class TileGrid():
+
+class TileGrid(object):
 
     def __init__(self, width, height):
         self.width = width
         self.height = height
         self._grid = []
-        for x in xrange(0, width):
+        for _x in xrange(0, width):
             g = []
-            for y in xrange(0, height):
+            for _y in xrange(0, height):
                 g.append(Tile())
             self._grid.append(g)
 
@@ -63,9 +65,9 @@ class TileGrid():
                 if tile.is_origin][0]
 
     def update_power(self):
-        for x, y, tile in self.get_all_tiles():
+        for _x, _y, tile in self.get_all_tiles():
             tile.is_powered = False
-        orig_x, orig_y, origin = self.get_origin()
+        orig_x, orig_y, _origin = self.get_origin()
         self._update_tile_power(orig_x, orig_y)
 
     def _update_tile_power(self, x, y):
@@ -86,7 +88,7 @@ class TileGrid():
 
     def _randomize_rotations(self):
         # TODO: using rotate_tile updates power, inefficient
-        for x, y, tile in self.get_all_tiles():
+        for x, y, _tile in self.get_all_tiles():
             # rotate time 0, 1, 2, or 3 times
             for _i in xrange(choice([0, 1, 2, 3])):
                 self.rotate_tile(x, y)
