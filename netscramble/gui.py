@@ -7,7 +7,8 @@ from collections import defaultdict
 import time
 
 from netscramble import res
-from netscramble.game import TileGrid
+#from netscramble.game import TileGrid
+from netscramble import game
 from netscramble.score_dialog import ScoreDialog
 
 class Timer(object):
@@ -45,9 +46,9 @@ def set_render_matrix(c, grid_width, grid_height, width, height):
     c.translate(empty_x / 2, empty_y / 2)
     c.scale(tile_size, tile_size)
 
-def render_tile_grid(c, width, height, tile_grid, tile_lock):
-    set_render_matrix(c, tile_grid.width, tile_grid.height, width, height)
-    for x, y, tile in tile_grid.get_all_tiles():
+def render_tile_grid(c, width, height, game_grid, tile_lock):
+    set_render_matrix(c, game_grid.get_size()[0], game_grid.get_size()[1], width, height)
+    for x, y, tile in game_grid:
         c.save()
         c.translate(x, y)
         render_tile(c, tile, tile_lock[(x, y)])
@@ -116,10 +117,10 @@ def render_tile(c, tile, locked):
     # draw pipes
     pipe_col = hex_to_rgb("ffd47e") if tile.is_powered else hex_to_rgb("ffffff")
     c.set_source_rgb(*pipe_col)
-    set_pipe_path(c, tile.pipes, 0.10)
+    set_pipe_path(c, tile.connections, 0.10)
     c.fill()
 
-    if (len(tile.pipes) == 1) and not tile.is_origin:
+    if (len(tile.connections) == 1) and not tile.is_origin:
         # draw node box
         c.rectangle(0.25, 0.25, 0.5, 0.5)
         c.set_source_rgb(*pipe_col)
@@ -140,6 +141,7 @@ def render_tile(c, tile, locked):
         c.stroke()
 
 
+
 class MainWindow(object):
     """Wrapper for the GtkWindow."""
 
@@ -156,7 +158,7 @@ class MainWindow(object):
         self.tick_period = 1000/60
         self.render_matrix = None
         self.render_matrix_inverted = None
-        self.tile_grid = None
+        self.game_grid = None
         self.tile_lock = None
         self.on_new_game_action_activate(None)
         new_game_f = lambda: self.on_new_game_action_activate(None)
@@ -172,12 +174,12 @@ class MainWindow(object):
         g_x, g_y = self.render_matrix_inverted.transform_point(event.x, event.y)
         g_x, g_y = int(g_x), int(g_y)
         if event.button == 1 and not self.tile_lock[(g_x, g_y)]: # left
-            self.tile_grid.rotate_tile(g_x, g_y)
+            game.rotate_tile(self.game_grid, g_x, g_y)
             self.clicks += 1
         elif event.button == 3: # right
             self.tile_lock[(g_x, g_y)] = not self.tile_lock[(g_x, g_y)]
         self.drawingarea.queue_draw()
-        if self.tile_grid.is_game_over() and not self.submitted_score:
+        if game.is_game_over(self.game_grid) and not self.submitted_score:
             self.submitted_score = True
             self.score_dialog.show_and_add_score(
                 GLib.get_real_name(), int(time.time()), self.clicks,
@@ -191,7 +193,7 @@ class MainWindow(object):
 
         with Timer(False): # TODO
             self.render_matrix = render_tile_grid(
-                cr, width, height, self.tile_grid, self.tile_lock
+                cr, width, height, self.game_grid, self.tile_lock
             )
         # TODO: need way to copy a matrix to avoid this
         self.render_matrix_inverted = cr.get_matrix()
@@ -201,7 +203,7 @@ class MainWindow(object):
         self.clicks = 0
         self.start_time = time.time()
         self.submitted_score = False
-        self.tile_grid = TileGrid(10, 7)
+        self.game_grid = game.new_game_grid()
         self.tile_lock = defaultdict(lambda: False)
         self.drawingarea.queue_draw()
 
