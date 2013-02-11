@@ -22,11 +22,9 @@ class Timer(object):
         self.start_time = time.time()
 
     def __exit__(self, _type, _value, _traceback):
-        end_time = time.time()
-        millis_elapsed = 1000 * (end_time - self.start_time)
+        millis_elapsed = 1000 * (time.time() - self.start_time)
         if self.print_result:
             print "{} ms elapsed".format(round(millis_elapsed, 2))
-        return millis_elapsed
 
 
 def hex_to_rgb(value):
