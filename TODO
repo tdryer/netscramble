@@ -4,4 +4,7 @@ desktop item / icon
 better puzzle generation
 multiple map sizes, difficulty levels
 animations
+    proper animation loop
+    improve performance (only redraw changed area?)
+    fix antialiasing for rotating tiles
 editable name for scores

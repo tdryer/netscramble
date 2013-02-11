@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-from gi.repository import Gtk, GLib #pylint: disable=E0611
+from gi.repository import Gtk, GLib, GObject #pylint: disable=E0611
 import cairo # less broken than pygi, seems to be compatible
 from math import pi
 from collections import defaultdict
@@ -44,13 +44,34 @@ def set_render_matrix(c, grid_width, grid_height, width, height):
     c.translate(empty_x / 2, empty_y / 2)
     c.scale(tile_size, tile_size)
 
-def render_tile_grid(c, width, height, game_grid, tile_lock):
-    set_render_matrix(c, game_grid.get_size()[0], game_grid.get_size()[1], width, height)
+def render_tile_grid(c, width, height, game_grid, tile_lock, tile_gfx):
+    set_render_matrix(c, game_grid.get_size()[0], game_grid.get_size()[1],
+                      width, height)
+    # first pass: update rotating tiles
     for x, y, tile in game_grid:
-        c.save()
-        c.translate(x, y)
-        render_tile(c, tile, tile_lock[(x, y)])
-        c.restore()
+        if tile in tile_gfx:
+            if tile_gfx[tile]["rot"] >= tile_gfx[tile]["end"]:
+                tile_gfx[tile]["on_end"]()
+                del tile_gfx[tile]
+            else:
+                tile_gfx[tile]["rot"] += pi / 16
+    # second pass: draw static tiles
+    for x, y, tile in game_grid:
+        if tile not in tile_gfx:
+            c.save()
+            c.translate(x, y)
+            render_tile(c, tile, tile_lock[(x, y)])
+            c.restore()
+    # third pass: draw rotating tiles above others
+    for x, y, tile in game_grid:
+        if tile in tile_gfx:
+            c.save()
+            c.translate(x, y)
+            c.translate(0.5, 0.5)
+            c.rotate(tile_gfx[tile]["rot"])
+            c.translate(-0.5, -0.5)
+            render_tile(c, tile, tile_lock[(x, y)])
+            c.restore()
     # return the matrix so it can be used for input
     return c.get_matrix()
 
@@ -154,15 +175,29 @@ class MainWindow(object):
         self.start_time = None
         self.submitted_score = False
         self.tick_period = 1000/60
+        self.last_draw_time = None
         self.render_matrix = None
         self.render_matrix_inverted = None
         self.game_grid = None
         self.tile_lock = None
+        self.tile_gfx = None
         self.on_new_game_action_activate(None)
         new_game_f = lambda: self.on_new_game_action_activate(None)
         self.score_dialog = ScoreDialog(self.window, new_game_f)
 
         self.window.show()
+        self.tick()
+
+    def tick(self):
+        """Redraw the drawing area and set timeout to call again.
+
+        Only continue ticking while an animation is running.
+        """
+        if self.tile_gfx.keys():
+            self.drawingarea.queue_draw()
+            self.last_draw_time = time.time()
+            GObject.timeout_add(self.tick_period, self.tick)
+        return False # stop timeout from reoccurring automatically
 
     def on_window1_destroy(self, widget, data=None):
         """End process when window is closed."""
@@ -172,17 +207,28 @@ class MainWindow(object):
         g_x, g_y = self.render_matrix_inverted.transform_point(event.x, event.y)
         g_x, g_y = int(g_x), int(g_y)
         if event.button == 1 and not self.tile_lock[(g_x, g_y)]: # left
-            game.rotate_tile(self.game_grid, g_x, g_y)
-            self.clicks += 1
+            tile = self.game_grid.get(g_x, g_y)
+            # for now, don't allow second rotation until first is done
+            if not self.tile_gfx.keys():
+                self.tile_gfx[tile] = {
+                    "rot": 0.0,
+                    "start": 0.0,
+                    "end": pi / 2,
+                    "on_end": lambda: self.rotate_tile(g_x, g_y)
+                }
+                self.tick()
+                self.clicks += 1
         elif event.button == 3: # right
             self.tile_lock[(g_x, g_y)] = not self.tile_lock[(g_x, g_y)]
-        self.drawingarea.queue_draw()
+            self.drawingarea.queue_draw()
+
+    def rotate_tile(self, x, y):
+        game.rotate_tile(self.game_grid, x, y)
         if game.is_game_over(self.game_grid) and not self.submitted_score:
             self.submitted_score = True
             self.score_dialog.show_and_add_score(
                 GLib.get_real_name(), int(time.time()), self.clicks,
-                int(time.time() - self.start_time)
-            )
+                int(time.time() - self.start_time))
 
     def on_drawingarea1_draw(self, widget, cr, _data=None):
         "Draw in the drawing area."""
@@ -191,7 +237,7 @@ class MainWindow(object):
 
         with Timer(False): # TODO
             self.render_matrix = render_tile_grid(
-                cr, width, height, self.game_grid, self.tile_lock
+                cr, width, height, self.game_grid, self.tile_lock, self.tile_gfx
             )
         # TODO: need way to copy a matrix to avoid this
         self.render_matrix_inverted = cr.get_matrix()
@@ -203,6 +249,7 @@ class MainWindow(object):
         self.submitted_score = False
         self.game_grid = game.new_game_grid()
         self.tile_lock = defaultdict(lambda: False)
+        self.tile_gfx = {}
         self.drawingarea.queue_draw()
 
     def on_view_scores_action_activate(self, action, data=None):
