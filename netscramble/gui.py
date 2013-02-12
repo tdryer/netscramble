@@ -8,7 +8,7 @@ import time
 
 from netscramble import res
 #from netscramble.game import TileGrid
-from netscramble import game
+from netscramble import game, scene
 from netscramble.score_dialog import ScoreDialog
 
 class Timer(object):
@@ -161,7 +161,7 @@ def render_tile(c, tile, locked):
 
 
 
-class MainWindow(object):
+class MainWindow(scene.Scene):
     """Wrapper for the GtkWindow."""
 
     def __init__(self):
@@ -169,13 +169,13 @@ class MainWindow(object):
         builder.add_from_file(res("glade/window1.glade"))
         builder.connect_signals(self)
         self.window = builder.get_object("window1")
-        self.drawingarea = builder.get_object("drawingarea1")
+        self.drawing_area = builder.get_object("drawingarea1")
+
+        super(MainWindow, self).__init__(self.drawing_area, 60)
 
         self.clicks = 0
-        self.start_time = None
+        self.start_time = None # when the current game started
         self.submitted_score = False
-        self.tick_period = 1000/60
-        self.last_draw_time = None
         self.render_matrix = None
         self.render_matrix_inverted = None
         self.game_grid = None
@@ -186,18 +186,6 @@ class MainWindow(object):
         self.score_dialog = ScoreDialog(self.window, new_game_f)
 
         self.window.show()
-        self.tick()
-
-    def tick(self):
-        """Redraw the drawing area and set timeout to call again.
-
-        Only continue ticking while an animation is running.
-        """
-        if self.tile_gfx.keys():
-            self.drawingarea.queue_draw()
-            self.last_draw_time = time.time()
-            GObject.timeout_add(self.tick_period, self.tick)
-        return False # stop timeout from reoccurring automatically
 
     def on_window1_destroy(self, widget, data=None):
         """End process when window is closed."""
@@ -208,21 +196,20 @@ class MainWindow(object):
         g_x, g_y = int(g_x), int(g_y)
         if event.button == 1 and not self.tile_lock[(g_x, g_y)]: # left
             tile = self.game_grid.get(g_x, g_y)
-            # for now, don't allow second rotation until first is done
-            if not self.tile_gfx.keys():
-                self.tile_gfx[tile] = {
-                    "rot": 0.0,
-                    "start": 0.0,
-                    "end": pi / 2,
-                    "on_end": lambda: self.rotate_tile(g_x, g_y)
-                }
-                self.tick()
-                self.clicks += 1
+            self.tile_gfx[tile] = {
+                "rot": 0.0,
+                "start": 0.0,
+                "end": pi / 2,
+                "on_end": lambda: self.rotate_tile(g_x, g_y)
+            }
+            self.tick_lock(tile)
+            self.clicks += 1
         elif event.button == 3: # right
             self.tile_lock[(g_x, g_y)] = not self.tile_lock[(g_x, g_y)]
-            self.drawingarea.queue_draw()
+            self.tick_once()
 
     def rotate_tile(self, x, y):
+        self.tick_unlock(self.game_grid.get(x, y))
         game.rotate_tile(self.game_grid, x, y)
         if game.is_game_over(self.game_grid) and not self.submitted_score:
             self.submitted_score = True
@@ -250,7 +237,7 @@ class MainWindow(object):
         self.game_grid = game.new_game_grid()
         self.tile_lock = defaultdict(lambda: False)
         self.tile_gfx = {}
-        self.drawingarea.queue_draw()
+        self.tick_once()
 
     def on_view_scores_action_activate(self, action, data=None):
         self.score_dialog.show()
