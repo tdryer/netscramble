@@ -2,6 +2,7 @@ from math import pi
 
 from netscramble.grid import Grid
 from netscramble import game
+from netscramble.easing import linear
 
 def hex_to_rgb(value):
     """Convert hexadecimal to RGB tuple."""
@@ -30,6 +31,7 @@ class CellView(object):
     ORIGIN_EDGE_COL = hex_to_rgb("000000")
     NUM_STRIPES = 10
     ROTATION_RAD_PER_SEC = 4 * pi
+    ROTATE_LENGTH = 0.25
 
     def __init__(self, game_cell):
         self.game_cell = game_cell
@@ -39,12 +41,13 @@ class CellView(object):
     def update(self, elapsed):
         """Update animation by elapsed seconds."""
         if self.rotation:
-            if self.rotation["rot"] >= self.rotation["end"]:
+            if self.rotation["time"] >= self.ROTATE_LENGTH:
                 self.rotation["on_end"]()
                 self.rotation = None
             else:
-                # TODO: could be above end, but gives pleasant bounce effect
-                self.rotation["rot"] += self.ROTATION_RAD_PER_SEC * elapsed
+                self.rotation["time"] += elapsed
+                if self.rotation["time"] > self.ROTATE_LENGTH:
+                    self.rotation["time"] = self.ROTATE_LENGTH
 
     def _set_stripes_path(self, c, size, pos):
         """Set Cairo path for background stripes."""
@@ -92,7 +95,7 @@ class CellView(object):
         c.save()
         if self.rotation:
             c.translate(pos[0] + size / 2, pos[1] + size / 2)
-            c.rotate(self.rotation["rot"])
+            c.rotate(pi / 2 * linear(self.rotation["time"] / float(self.ROTATE_LENGTH)))
             c.translate(-pos[0] - size / 2, -pos[1] - size / 2)
 
         # draw tile background
@@ -221,9 +224,7 @@ class GridView(object):
         cell = self.cell_view_grid.get(*grid_pos)
         if not cell.is_locked:
             cell.rotation = {
-                "start": 0,
-                "end": pi / 2,
-                "rot": 0,
+                "time": 0,
                 "on_end": lambda: (game.rotate_tile(self.game_grid, *grid_pos),
                                    callback()),
             }
