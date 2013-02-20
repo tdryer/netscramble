@@ -59,7 +59,8 @@ class MainWindow(scene.Scene):
         if cell_pos and event.button == 1: # left
             tile = self.game_grid.get(*cell_pos)
             self.grid_view.rotate_cell(cell_pos,
-                                       callback=self._check_game_over)
+                    callback=lambda: (self._check_game_over,
+                                      self.tick_unlock(tile)))
             self.tick_lock(tile)
             self.clicks += 1
         elif cell_pos and event.button == 3: # right
@@ -79,8 +80,8 @@ class MainWindow(scene.Scene):
         width = widget.get_allocated_width()
         height = widget.get_allocated_height()
         with Timer(False): # TODO
-            self.grid_view.draw(cr, (width, height))
             self.grid_view.update(1.0 / 60) # TODO: assumes 60 fps
+            self.grid_view.draw(cr, (width, height))
 
     def on_new_game_action_activate(self, action, data=None):
         """Start a new game."""
