@@ -2,7 +2,7 @@ from math import pi
 
 from netscramble.grid import Grid
 from netscramble import game
-from netscramble.easing import linear
+from netscramble import easing
 
 def hex_to_rgb(value):
     """Convert hexadecimal to RGB tuple."""
@@ -31,7 +31,7 @@ class CellView(object):
     ORIGIN_EDGE_COL = hex_to_rgb("000000")
     NUM_STRIPES = 10
     ROTATION_RAD_PER_SEC = 4 * pi
-    ROTATE_LENGTH = 0.25
+    ROTATE_LENGTH = 0.2
 
     def __init__(self, game_cell):
         self.game_cell = game_cell
@@ -95,7 +95,8 @@ class CellView(object):
         c.save()
         if self.rotation:
             c.translate(pos[0] + size / 2, pos[1] + size / 2)
-            c.rotate(pi / 2 * linear(self.rotation["time"] / float(self.ROTATE_LENGTH)))
+            c.rotate(pi / 2 * easing.elastic_out(self.rotation["time"] /
+                                                 float(self.ROTATE_LENGTH)))
             c.translate(-pos[0] - size / 2, -pos[1] - size / 2)
 
         # draw tile background
