@@ -138,7 +138,7 @@ class CellView(object):
 
         # draw origin circle
         if self.game_cell.is_origin:
-            c.arc(left + size / 2, top + size / 2, size / 4, 0, 2 * pi)
+            c.arc(left + tile / 2, top + tile / 2, tile / 4, 0, 2 * pi)
             c.set_source_rgb(*pipe_col)
             c.fill_preserve()
             # must be divisible by 2 to prevent anti aliasing
