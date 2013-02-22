@@ -59,7 +59,7 @@ class MainWindow(scene.Scene):
         if cell_pos and event.button == 1: # left
             tile = self.game_grid.get(*cell_pos)
             self.grid_view.rotate_cell(cell_pos,
-                    callback=lambda: (self._check_game_over,
+                    callback=lambda: (self._check_game_over(),
                                       self.tick_unlock(tile)))
             self.tick_lock(tile)
             self.clicks += 1
