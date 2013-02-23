@@ -220,13 +220,15 @@ class GridView(object):
         is_locked = self.cell_view_grid.get(*grid_pos).is_locked
         self.cell_view_grid.get(*grid_pos).is_locked = not is_locked
 
-    def rotate_cell(self, grid_pos, callback=None):
+    def rotate_cell(self, grid_pos, change_callback, callback):
         "Set rotation animation for cell at given pos."""
         cell = self.cell_view_grid.get(*grid_pos)
         if not cell.is_locked:
             cell.rotation = {
                 "time": 0,
                 "on_end": lambda: (game.rotate_tile(self.game_grid, *grid_pos),
-                                   callback()),
+                                   callback(),
+                                   change_callback()),
             }
-
+        else:
+            callback()
